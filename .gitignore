@@ -1,0 +1,26 @@
+# SBT target directories and build artifacts
+target/
+project/target/
+project/project/
+project/boot/
+
+# Play Framework specific
+logs/
+/modules/
+/.sbtservers/
+.sbtserver/
+run.lock
+
+# IDEs and Editors
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+.metals/
+.bloop/
+
+# OS generated files
+.DS_Store
+Thumbs.db

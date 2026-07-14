@@ -52,11 +52,11 @@ class VendorRegistry {
 
 
   /** Add or fully replace a vendor profile */
-  def put(profile: VendorProfile): Unit =
+  def addVendorProfile(profile: VendorProfile): Unit =
     vendorRegistryCache.update(profile.vendorId, profile.copy(updatedAt = Instant.now()))
 
   /** Remove a vendor from the registry */
-  def remove(vendorId: String): Unit =
+  def removeVendorProfile(vendorId: String): Unit =
     vendorRegistryCache.remove(vendorId)
 
   /**
@@ -64,7 +64,7 @@ class VendorRegistry {
    * Called by HealthProbeActor every 30 seconds.
    * Returns true if the vendor was found and updated, false if not found.
    */
-  def updateHealth(
+  def updateVendorHealth(
                     vendorId:     String,
                     health:       HealthStatus,
                     circuitState: CircuitState,
@@ -91,7 +91,7 @@ class VendorRegistry {
    * Called by VendorStatsActor every 60 seconds after recalculating
    * the 1-hour rolling window from real traffic.
    */
-  def updateStats(
+  def updateVendorStats(
                    vendorId:      String,
                    successRate1h: Double,
                    avgLatencyMs:  Long,

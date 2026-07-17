@@ -17,10 +17,11 @@ import scala.concurrent.duration.DurationInt
 object VendorRegistryActor {
   // Messages this actor understands
   case object Refresh // sent on timer tick
+
   case object TimerKey // identifies the timer (so we can cancel it)
 }
 
-class VendorRegistryActor(registry: VendorRegistry) extends Actor with ActorLogging with Timers{
+class VendorRegistryActor(vendorRegistry: VendorRegistry) extends Actor with ActorLogging with Timers {
 
 
   override def preStart(): Unit = {
@@ -31,19 +32,20 @@ class VendorRegistryActor(registry: VendorRegistry) extends Actor with ActorLogg
     // also do one immediate refresh on startup
     self ! Refresh
   }
+
   override def receive: Receive = {
     case Refresh => refresh()
   }
 
-  private def refresh() :Unit = {
-    val allVendorList = registry.listAllVendorProfiles
-    if(allVendorList.isEmpty){
+  private def refresh(): Unit = {
+    val allVendorList = vendorRegistry.listAllVendorProfiles
+    if (allVendorList.isEmpty) {
       log.warning(s"vendorList is empty - seeding vendor registry")
-      registry.seedDefaults()
-      log.info(s"seeded registry with ${registry.size} vendors")
+      vendorRegistry.seedDefaults()
+      log.info(s"seeded registry with ${vendorRegistry.size} vendors")
     }
-    else{
-      allVendorList.foreach{
+    else {
+      allVendorList.foreach {
         vendor =>
           log.info(
             s"[registry] ${vendor.vendorId} | " +

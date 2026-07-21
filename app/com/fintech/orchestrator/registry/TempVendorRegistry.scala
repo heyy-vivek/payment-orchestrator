@@ -9,19 +9,19 @@ object TempVendorRegistry extends App {
   println("=== VendorRegistry + VendorRegistryActor Test ===\n")
 
   // Step 1: Create the registry singleton
-  val registry = new VendorRegistry()
+  val vendorRegistry = new VendorRegistry()
   println(s"✓ Created registry")
-  println(s"  registry.size: ${registry.size}\n")
+  println(s"  registry.size: ${vendorRegistry.size}\n")
 
   // Step 2: Seed with defaults
   println("Seeding defaults...")
-  registry.seedDefaults()
+  vendorRegistry.seedDefaults()
   println(s"✓ Seeded")
-  println(s"  registry.size: ${registry.size}\n")
+  println(s"  registry.size: ${vendorRegistry.size}\n")
 
   // Step 3: Look up a vendor
   println("Looking up razorpay...")
-  registry.findVendorProfile("razorpay") match {
+  vendorRegistry.findVendorProfile("razorpay") match {
     case Some(v) =>
       println(s"✓ Found: ${v.vendorId}")
       println(s"  health: ${v.healthStatus}")
@@ -39,7 +39,7 @@ object TempVendorRegistry extends App {
   // Step 5: Create the actor through the system
   println("Starting VendorRegistryActor...")
   val registryActor = system.actorOf(
-    Props(new VendorRegistryActor(registry)),
+    Props(new VendorRegistryActor(vendorRegistry)),
     "vendor-registry-actor"
   )
   println(s"✓ VendorRegistryActor started: $registryActor\n")
@@ -50,7 +50,7 @@ object TempVendorRegistry extends App {
 
   // Step 7: Simulate a vendor health change
   println("\n--- Simulating health change ---")
-  registry.updateVendorHealth(
+  vendorRegistry.updateVendorHealth(
     "razorpay",
     com.fintech.orchestrator.domain.HealthStatus.Down,
     com.fintech.orchestrator.domain.CircuitState.Open,

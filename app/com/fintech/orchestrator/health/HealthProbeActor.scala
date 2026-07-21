@@ -2,12 +2,11 @@ package com.fintech.orchestrator.health
 
 import akka.actor.{Actor, ActorLogging, Timers}
 import com.fintech.orchestrator.domain.{CircuitState, HealthStatus, VendorProfile}
-import com.fintech.orchestrator.registry.TempVendorRegistry.registry
 import com.fintech.orchestrator.registry.VendorRegistry
 import play.api.libs.ws.WSClient
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object HealthProbeActor {
@@ -31,6 +30,7 @@ object HealthProbeActor {
  * @param wsClient Play's HTTP client (injected by Guice)
  * @param ec execution context for async operations
  */
+
 class HealthProbeActor(
                         vendorRegistry: VendorRegistry,
                         wsClient: WSClient
@@ -147,7 +147,7 @@ class HealthProbeActor(
     }
 
     if (newHealth != vendor.healthStatus || newCircuit != vendor.circuitState) {
-      registry.updateVendorHealth(
+      vendorRegistry.updateVendorHealth(
         vendorId     = vendor.vendorId,
         health       = newHealth,
         circuitState = newCircuit,
@@ -166,7 +166,7 @@ class HealthProbeActor(
     // Only mark DOWN after 3 consecutive failures
     if (failures >= 3 && vendor.healthStatus != HealthStatus.Down) {
       log.error(s"${vendor.vendorId} failed 3 probes → DOWN / OPEN")
-      registry.updateVendorHealth(
+      vendorRegistry.updateVendorHealth(
         vendorId     = vendor.vendorId,
         health       = HealthStatus.Down,
         circuitState = CircuitState.Open,

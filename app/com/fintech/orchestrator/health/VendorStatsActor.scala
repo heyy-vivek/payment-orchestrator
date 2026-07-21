@@ -1,8 +1,10 @@
 package com.fintech.orchestrator.health
 
 import akka.actor.{Actor, ActorLogging, Timers}
+import com.fintech.orchestrator.domain.CircuitState.HalfOpen
 import com.fintech.orchestrator.domain._
 import com.fintech.orchestrator.registry.VendorRegistry
+
 import scala.concurrent.duration._
 import java.time.Instant
 
@@ -41,9 +43,9 @@ object VendorStatsActor {
  * This is MORE ACCURATE than active probes because it reflects
  * real production traffic, not synthetic health checks.
  *
- * @param registry shared VendorRegistry singleton
+ * @param vendorRegistry shared VendorRegistry singleton
  */
-class VendorStatsActor(registry: VendorRegistry)
+class VendorStatsActor(vendorRegistry: VendorRegistry)
   extends Actor with ActorLogging with Timers {
 
   import VendorStatsActor._
@@ -88,7 +90,7 @@ class VendorStatsActor(registry: VendorRegistry)
   // ── Flushing logic ─────────────────────────────────────────────────────────
 
   private def flush(): Unit = {
-    val cutoff = Instant.now().minusSeconds(3600)  // 1 hour ago
+    val cutoff = Instant.now().minusSeconds(60*60)  // 1 hour => 60*60 secs
 
     windows = windows.map { case (vendorId, records) =>
       // Keep only records from the last hour
@@ -108,7 +110,7 @@ class VendorStatsActor(registry: VendorRegistry)
         )
 
         // Update the registry
-        registry.updateVendorStats(
+        vendorRegistry.updateVendorStats(
           vendorId      = vendorId,
           successRate1h = BigDecimal(successRate).setScale(4, BigDecimal.RoundingMode.HALF_UP).toDouble,
           avgLatencyMs  = avgLatency,
@@ -116,16 +118,16 @@ class VendorStatsActor(registry: VendorRegistry)
         )
 
         // Auto-degrade if success rate drops
-        registry.findVendorProfile(vendorId).foreach { vendor =>
+        vendorRegistry.findVendorProfile(vendorId).foreach { vendor =>
           if (successRate < 0.70 && vendor.healthStatus == HealthStatus.Healthy) {
             log.warning(
               s"$vendorId success rate dropped to ${f"${successRate * 100}%.1f%%"} " +
                 s"(<70% threshold) → auto-DEGRADED"
             )
-            registry.updateVendorHealth(
+            vendorRegistry.updateVendorHealth(
               vendorId     = vendorId,
               health       = HealthStatus.Degraded,
-              circuitState = vendor.circuitState,
+              circuitState = CircuitState.HalfOpen,
               failureCount = vendor.failureCount
             )
           } else if (successRate >= 0.95 && vendor.healthStatus == HealthStatus.Degraded) {
@@ -133,7 +135,7 @@ class VendorStatsActor(registry: VendorRegistry)
               s"$vendorId success rate recovered to ${f"${successRate * 100}%.1f%%"} " +
                 s"(>95% threshold) → HEALTHY"
             )
-            registry.updateVendorHealth(
+            vendorRegistry.updateVendorHealth(
               vendorId     = vendorId,
               health       = HealthStatus.Healthy,
               circuitState = CircuitState.Closed,

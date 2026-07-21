@@ -34,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class CircuitBreakerRegistry @Inject()(
-                                        system: ActorSystem
+                                        actorSystem: ActorSystem
                                       )(implicit ec: ExecutionContext) {
 
   private val log = LoggerFactory.getLogger(getClass)
@@ -101,6 +101,10 @@ class CircuitBreakerRegistry @Inject()(
     circuitBreaker.get(key).foreach { _ =>
       // Remove and recreate — effectively resets it
       circuitBreaker.remove(key)
+
+      val newCB = buildCircuitBreaker(vendorId = vendorId, mode = mode)
+      circuitBreaker.update((vendorId,mode),newCB)
+
       log.info(s"Circuit breaker reset for ($vendorId, $mode)")
     }
   }
@@ -116,15 +120,15 @@ class CircuitBreakerRegistry @Inject()(
                                   mode: PaymentMode
                                 ): CircuitBreaker = {
     val key = (vendorId, mode)
-    circuitBreaker.getOrElseUpdate(key, buildBreaker(vendorId, mode))
+    circuitBreaker.getOrElseUpdate(key, buildCircuitBreaker(vendorId, mode))
   }
 
   /**
    * Build a new CircuitBreaker with callbacks for state changes.
    */
-  private def buildBreaker(vendorId: String, mode: PaymentMode): CircuitBreaker = {
+  private def buildCircuitBreaker(vendorId: String, mode: PaymentMode): CircuitBreaker = {
     val cb = CircuitBreaker(
-      scheduler    = system.scheduler,
+      scheduler    = actorSystem.scheduler,
       maxFailures  = maxFailures,
       callTimeout  = callTimeout,
       resetTimeout = resetTimeout
